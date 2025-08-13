@@ -3,9 +3,7 @@ package com.each.cheat.mobileclean.photo
 import java.text.SimpleDateFormat
 import java.util.*
 
-/**
- * 照片信息数据类
- */
+
 data class PhotoInfo(
     val id: Long,
     val path: String,
@@ -14,9 +12,7 @@ data class PhotoInfo(
     val dateAdded: Long,
     var isSelected: Boolean = false
 ) {
-    /**
-     * 获取格式化的日期字符串
-     */
+
     fun getFormattedDate(): String {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = dateAdded * 1000
@@ -35,9 +31,7 @@ data class PhotoInfo(
         }
     }
 
-    /**
-     * 获取日期的唯一标识符（用于分组）
-     */
+
     fun getDateKey(): String {
         val calendar = Calendar.getInstance()
         calendar.timeInMillis = dateAdded * 1000
@@ -51,38 +45,27 @@ data class PhotoInfo(
     }
 }
 
-/**
- * 按日期分组的照片数据
- */
 data class PhotoDateGroup(
     val date: String,
     val photos: MutableList<PhotoInfo>,
     var isAllSelectedImg: Boolean = false
 ) {
-    /**
-     * 获取该日期组的总大小
-     */
+
     fun getTotalSize(): Long {
         return photos.sumOf { it.size }
     }
 
-    /**
-     * 获取选中照片的总大小
-     */
+
     fun getSelectedSize(): Long {
         return photos.filter { it.isSelected }.sumOf { it.size }
     }
 
-    /**
-     * 检查并更新全选状态
-     */
+
     fun updateSelectAllState() {
         isAllSelectedImg = photos.isNotEmpty() && photos.all { it.isSelected }
     }
 
-    /**
-     * 设置该组所有照片的选中状态
-     */
+
     fun setAllSelected(selected: Boolean) {
         photos.forEach { it.isSelected = selected }
         isAllSelectedImg = selected

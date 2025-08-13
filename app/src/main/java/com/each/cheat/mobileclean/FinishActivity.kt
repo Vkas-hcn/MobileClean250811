@@ -29,7 +29,6 @@ class FinishActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        // 返回按钮
         binding.imgBack.setOnClickListener {
             navigateToHome()
         }

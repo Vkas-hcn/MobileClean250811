@@ -30,14 +30,12 @@ class CategoryAdapter(
         val rvItemFile: RecyclerView = itemView.findViewById(R.id.rv_item_file)
 
         init {
-            // 为每个ViewHolder预设布局管理器和优化设置
             if (rvItemFile.layoutManager == null) {
                 val layoutManager = LinearLayoutManager(itemView.context)
                 rvItemFile.layoutManager = layoutManager
-                // 设置RecyclerView优化参数
                 rvItemFile.setHasFixedSize(true)
-                rvItemFile.setItemViewCacheSize(20) // 增加缓存大小
-                rvItemFile.isNestedScrollingEnabled = false // 禁用嵌套滚动
+                rvItemFile.setItemViewCacheSize(20)
+                rvItemFile.isNestedScrollingEnabled = false
             }
         }
     }
@@ -53,7 +51,6 @@ class CategoryAdapter(
 
         Log.d(TAG, "绑定分类 $position: ${category.name}, 文件数: ${category.files.size}")
 
-        // 基本信息设置
         holder.tvTitle.text = category.name
 
         val sizeText = if (category.files.isEmpty()) {
@@ -63,15 +60,12 @@ class CategoryAdapter(
         }
         holder.tvSize.text = sizeText
 
-        // 设置图标
         setSelectIcon(holder.imgSelect, category.isSelected && category.files.isNotEmpty())
         setExpandIcon(holder.imgInstruct, category.isExpanded)
         setupUIForCategory(holder, category)
 
-        // 处理文件列表的设置 - 优化性能
         handleFileListOptimized(holder, category, position)
 
-        // 点击事件处理
         setupClickListeners(holder, category, position)
     }
 
@@ -81,10 +75,8 @@ class CategoryAdapter(
         position: Int
     ) {
         if (category.isExpanded && category.files.isNotEmpty()) {
-            // 显示文件列表容器
             holder.rvItemFile.visibility = View.VISIBLE
 
-            // 异步加载文件列表，避免阻塞主线程
             coroutineScope.launch {
                 val fileAdapter = getOrCreateFileAdapterAsync(position, category)
                 withContext(Dispatchers.Main) {
@@ -94,27 +86,20 @@ class CategoryAdapter(
                 }
             }
         } else {
-            // 隐藏文件列表
             holder.rvItemFile.visibility = View.GONE
-            // 清除适配器以释放内存，但保留在缓存中
             holder.rvItemFile.adapter = null
         }
     }
 
     private suspend fun getOrCreateFileAdapterAsync(position: Int, category: JunkCategory): FileAdapter = withContext(Dispatchers.IO) {
-        // 检查缓存
         fileAdapterCache[position]?.let { existingAdapter ->
-            // 在后台线程更新数据
             existingAdapter.updateFilesAsync(category.files)
             return@withContext existingAdapter
         }
 
-        // 创建新适配器
         val newAdapter = FileAdapter(category.files.toMutableList()) {
-            // 更新分类的选择状态
             coroutineScope.launch(Dispatchers.Main) {
                 category.updateSelectionState()
-                // 通知UI更新
                 notifyItemChanged(position, "selection_changed")
                 onSelectionChanged()
             }
@@ -129,13 +114,11 @@ class CategoryAdapter(
         category: JunkCategory,
         position: Int
     ) {
-        // 展开/折叠点击
         holder.llCategory.setOnClickListener {
             if (category.files.isNotEmpty()) {
                 category.isExpanded = !category.isExpanded
                 Log.d(TAG, "${category.name} 展开状态: ${category.isExpanded}")
 
-                // 使用payload避免完整重绑定
                 notifyItemChanged(position, "expand_changed")
             } else {
                 category.isExpanded = !category.isExpanded
@@ -145,12 +128,10 @@ class CategoryAdapter(
             }
         }
 
-        // 选择点击
         holder.imgSelect.setOnClickListener {
             if (category.files.isNotEmpty()) {
                 category.isSelected = !category.isSelected
 
-                // 在后台线程批量更新文件选择状态
                 coroutineScope.launch(Dispatchers.IO) {
                     category.files.forEach { it.isSelected = category.isSelected }
                     category.updateSelectionState()
@@ -160,7 +141,6 @@ class CategoryAdapter(
                         notifyItemChanged(position, "selection_changed")
                         onSelectionChanged()
 
-                        // 如果文件列表正在显示，也更新文件适配器
                         if (category.isExpanded) {
                             fileAdapterCache[position]?.notifyDataSetChanged()
                         }
@@ -173,7 +153,6 @@ class CategoryAdapter(
         }
     }
 
-    // 支持部分更新，避免完整重绑定
     override fun onBindViewHolder(
         holder: CategoryViewHolder,
         position: Int,
@@ -192,7 +171,6 @@ class CategoryAdapter(
                     setSelectIcon(holder.imgSelect, category.isSelected && category.files.isNotEmpty())
                     setupUIForCategory(holder, category)
 
-                    // 更新文件数显示
                     val sizeText = if (category.files.isEmpty()) {
                         "0 files • 0 KB"
                     } else {
@@ -205,7 +183,6 @@ class CategoryAdapter(
                     handleFileListOptimized(holder, category, position)
                 }
                 "files_updated" -> {
-                    // 实时文件更新
                     val sizeText = if (category.files.isEmpty()) {
                         "0 files • 0 KB"
                     } else {
@@ -214,7 +191,6 @@ class CategoryAdapter(
                     holder.tvSize.text = sizeText
                     setupUIForCategory(holder, category)
 
-                    // 如果正在展开状态，更新文件适配器
                     if (category.isExpanded && category.files.isNotEmpty()) {
                         coroutineScope.launch {
                             val fileAdapter = getOrCreateFileAdapterAsync(position, category)
@@ -251,33 +227,7 @@ class CategoryAdapter(
         return categories.size
     }
 
-    // 实时更新分类，性能优化版本
-    fun updateCategoryFiles(categoryName: String, newFile: JunkFile) {
-        val categoryIndex = categories.indexOfFirst { it.name == categoryName }
-        if (categoryIndex != -1) {
-            val category = categories[categoryIndex]
-            if (category.files.size < JunkCategory.MAX_FILES_PER_CATEGORY) {
-                category.files.add(newFile)
-                // 使用payload更新，避免完整重绑定
-                notifyItemChanged(categoryIndex, "files_updated")
-            }
-        }
-    }
 
-    fun updateCategories(newCategories: List<JunkCategory>) {
-        Log.d(TAG, "updateCategories: 新分类数=${newCategories.size}")
-
-        // 清理缓存
-        fileAdapterCache.clear()
-
-        categories.clear()
-        categories.addAll(newCategories)
-        notifyDataSetChanged()
-
-        categories.forEachIndexed { index, category ->
-            Log.d(TAG, "分类 $index: ${category.name} (${category.files.size} files)")
-        }
-    }
 
     // 清理资源
     fun cleanup() {
@@ -307,7 +257,6 @@ class CategoryAdapter(
             }
             imageView.setImageResource(resourceId)
         } catch (e: Exception) {
-            Log.w(TAG, "设置选中图标失败", e)
             imageView.setImageResource(
                 if (isSelected) android.R.drawable.checkbox_on_background
                 else android.R.drawable.checkbox_off_background
@@ -332,7 +281,6 @@ class CategoryAdapter(
             }
             imageView.setImageResource(resourceId)
         } catch (e: Exception) {
-            Log.w(TAG, "设置展开图标失败", e)
             imageView.setImageResource(
                 if (isExpanded) android.R.drawable.arrow_up_float
                 else android.R.drawable.arrow_down_float
@@ -341,7 +289,6 @@ class CategoryAdapter(
     }
 }
 
-// 优化后的FileAdapter
 class FileAdapter(
     private val files: MutableList<JunkFile>,
     private val onSelectionChanged: () -> Unit
@@ -361,7 +308,7 @@ class FileAdapter(
     }
 
     override fun onBindViewHolder(holder: FileViewHolder, position: Int) {
-        if (position >= files.size) return // 安全检查
+        if (position >= files.size) return
 
         val file = files[position]
         val fileInfo = "${file.name}\n${file.getSizeInMB()}"
@@ -382,16 +329,10 @@ class FileAdapter(
 
     override fun getItemCount(): Int = files.size
 
-    // 同步更新文件列表
-    fun updateFiles(newFiles: List<JunkFile>) {
-        files.clear()
-        files.addAll(newFiles)
-        notifyDataSetChanged()
-    }
 
-    // 异步更新文件列表，提高性能
+
     suspend fun updateFilesAsync(newFiles: List<JunkFile>) = withContext(Dispatchers.IO) {
-        val filesToAdd = newFiles.toList() // 创建副本避免并发修改
+        val filesToAdd = newFiles.toList()
         withContext(Dispatchers.Main) {
             files.clear()
             files.addAll(filesToAdd)

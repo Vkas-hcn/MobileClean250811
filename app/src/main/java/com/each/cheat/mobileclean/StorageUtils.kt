@@ -11,9 +11,7 @@ import java.text.DecimalFormat
 import kotlin.math.log10
 import kotlin.math.pow
 object StorageUtils {
-    /**
-     * 格式化字节数为可读的文件大小
-     */
+
     fun formatBytes2(bytes: Long): String {
         if (bytes <= 0) return "0 B"
 
@@ -26,16 +24,12 @@ object StorageUtils {
         return "${decimalFormat.format(value)} ${units[digitGroups]}"
     }
 
-    /**
-     * 将字节转换为MB
-     */
+
     fun bytesToMB(bytes: Long): Double {
         return bytes / (1024.0 * 1024.0)
     }
 
-    /**
-     * 将字节转换为GB
-     */
+
     fun bytesToGB(bytes: Long): Double {
         return bytes / (1024.0 * 1024.0 * 1024.0)
     }

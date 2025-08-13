@@ -84,9 +84,6 @@ class PhotoDateAdapter(
     }
 }
 
-/**
- * 单个照片适配器
- */
 class PhotoAdapter(
     private val onPhotoClick: (PhotoInfo) -> Unit
 ) : RecyclerView.Adapter<PhotoAdapter.PhotoViewHolder>() {

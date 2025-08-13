@@ -50,7 +50,6 @@ class PhotoActivity : AppCompatActivity() {
 
     private fun setupUI() {
         binding.layoutTip.imgLogo.setImageResource(R.mipmap.ic_image)
-        // 设置返回按钮
         binding.imageView3.setOnClickListener {
             finish()
         }
@@ -59,7 +58,6 @@ class PhotoActivity : AppCompatActivity() {
         }
         binding.layoutTip.load.setOnClickListener {  }
         binding.llSelectAll.setOnClickListener {  }
-        // 设置RecyclerView
         photoAdapter = PhotoDateAdapter {
             updateSelectedInfo()
         }
@@ -68,48 +66,38 @@ class PhotoActivity : AppCompatActivity() {
             adapter = photoAdapter
         }
 
-        // 设置全选按钮
         binding.cbSelectAllGlobal.setOnClickListener {
             toggleSelectAll()
         }
 
-        // 设置删除按钮
         binding.btnCleanNow.setOnClickListener {
             showDeleteConfirmDialog()
         }
 
-        // 初始化选中信息
         updateSelectedInfo()
     }
 
     private fun showLoadingAndScanPhotos() {
-        // 显示加载界面
         binding.layoutTip.load.visibility = View.VISIBLE
         binding.layoutTip.tvLoadTip.text = "Scanning…"
 
-        // 开始旋转动画
         startRotationAnimation()
 
         lifecycleScope.launch {
-            // 延迟1秒显示加载效果
             delay(1000)
 
-            // 扫描照片
             val photos = withContext(Dispatchers.IO) {
                 scanAllPhotos()
             }
 
-            // 更新UI
             allPhotos.clear()
             allPhotos.addAll(photos)
             groupPhotosByDate()
             photoAdapter.updateData(dateGroups)
 
-            // 隐藏加载界面
             stopRotationAnimation()
             binding.layoutTip.load.visibility = View.GONE
 
-            // 更新扫描结果
             updateScanResult()
         }
     }
@@ -362,14 +350,11 @@ class PhotoActivity : AppCompatActivity() {
                 }
             }
 
-            // 延迟1秒显示清理效果
             delay(1000)
 
-            // 停止动画
             stopRotationAnimation()
             binding.layoutTip.load.visibility = View.GONE
 
-            // 跳转到完成页面
             val intent = Intent(this@PhotoActivity, FinishActivity::class.java)
             intent.putExtra("cleaned_size", totalSize)
             startActivity(intent)

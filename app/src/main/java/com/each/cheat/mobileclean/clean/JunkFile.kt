@@ -26,7 +26,6 @@ data class JunkCategory(
     var isSelected: Boolean = true
 ) {
     companion object {
-        // 每个分类最多显示500个文件，避免UI卡顿
         const val MAX_FILES_PER_CATEGORY = 500
     }
 
@@ -53,7 +52,6 @@ data class JunkCategory(
         isSelected = selectedFiles.isNotEmpty() && selectedFiles.size == files.size
     }
 
-    // 获取显示的文件数信息
     fun getFileCountInfo(): String {
         return if (files.size >= MAX_FILES_PER_CATEGORY) {
             "${files.size}+ files" // 显示+号表示可能有更多文件

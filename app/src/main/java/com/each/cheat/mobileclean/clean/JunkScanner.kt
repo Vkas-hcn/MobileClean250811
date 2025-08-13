@@ -53,10 +53,8 @@ class JunkScanner(private val context: Context) {
         ".*(/|\\\\)xiaomi(/|\\\\|\$).*\\.cache\$"
     )
 
-    // 编译正则表达式模式
     private val compiledPatterns = filterStrArr.map { Pattern.compile(it, Pattern.CASE_INSENSITIVE) }
 
-    // 垃圾文件扩展名
     private val junkExtensions = setOf(
         ".tmp", ".temp", ".log", ".cache", ".bak", ".old", ".~", ".swp",
         ".dmp", ".chk", ".gid", ".dir", ".wbk", ".xlk", ".~tmp",
@@ -64,17 +62,14 @@ class JunkScanner(private val context: Context) {
         ".dumpfile", ".trace", ".err", ".out", ".pid", ".lock"
     )
 
-    // 缓存目录名
     private val cacheDirectories = setOf(
         "cache", "Cache", "CACHE", "tmp", "temp", "Temp", "TEMP",
         ".cache", ".tmp", ".temp", "thumbnail", "thumbnails",
         ".thumbnails", "lost+found", "backup", "Backup", "BACKUP"
     )
 
-    // APK文件大小阈值（小于1MB的APK可能是垃圾）
     private val APK_SIZE_THRESHOLD = 1024 * 1024L // 1MB
 
-    // 标准分类定义
     private val standardCategories = listOf(
         "App Cache",
         "Apk Files",
@@ -83,13 +78,10 @@ class JunkScanner(private val context: Context) {
         "Other"
     )
 
-    // 添加文件计数器，用于限制每个分类的文件数量
     private val categoryFileCounts = mutableMapOf<String, Int>()
 
     suspend fun scanForJunk(callback: ScanCallback) = withContext(Dispatchers.IO) {
-        Log.d(TAG, "开始扫描垃圾文件")
 
-        // 初始化分类计数器
         categoryFileCounts.clear()
         standardCategories.forEach { categoryName ->
             categoryFileCounts[categoryName] = 0
@@ -97,38 +89,29 @@ class JunkScanner(private val context: Context) {
 
         var totalScannedSize = 0L
 
-        // 首先创建一些测试垃圾文件
         createTestJunkFiles(callback)
 
-        // 获取所有可扫描的路径
         val scanPaths = getAllScanPaths()
-        Log.d(TAG, "扫描路径数量: ${scanPaths.size}")
 
         for (path in scanPaths) {
             if (path.exists() && path.canRead()) {
-                Log.d(TAG, "扫描路径: ${path.absolutePath}")
                 withContext(Dispatchers.Main) {
                     callback.onScanProgress(path.absolutePath, totalScannedSize)
                 }
 
                 totalScannedSize = scanDirectory(path, callback, totalScannedSize)
-                delay(50) // 减少延迟给UI更新时间
+                delay(50)
             } else {
                 Log.d(TAG, "路径不可访问: ${path.absolutePath}")
             }
         }
 
-        // 扫描完成，创建最终结果
         val finalCategories = standardCategories.map { categoryName ->
             JunkCategory(categoryName).apply {
-                // 这里不添加文件，因为文件已经通过回调实时添加了
             }
         }
 
-        Log.d(TAG, "扫描完成，总共发现的文件数:")
-        categoryFileCounts.forEach { (category, count) ->
-            Log.d(TAG, "$category: $count 个文件")
-        }
+
 
         withContext(Dispatchers.Main) {
             callback.onScanComplete(finalCategories)
@@ -139,17 +122,14 @@ class JunkScanner(private val context: Context) {
         val paths = mutableListOf<File>()
 
         try {
-            // 外部存储根目录
             val externalStorage = Environment.getExternalStorageDirectory()
             if (externalStorage.exists()) {
                 paths.add(externalStorage)
             }
 
-            // 应用缓存目录
             context.cacheDir?.let { paths.add(it) }
             context.externalCacheDir?.let { paths.add(it) }
 
-            // 常见目录
             val commonDirs = listOf(
                 "Download", "Downloads", "DCIM/.thumbnails", "Pictures/.thumbnails",
                 "Android/data", "Android/obb", "tencent", "Tencent",
@@ -165,7 +145,6 @@ class JunkScanner(private val context: Context) {
                 }
             }
 
-            // 添加一些系统可能的垃圾文件位置
             val systemDirs = listOf(
                 File("/sdcard/"),
                 File("/storage/emulated/0/"),
@@ -198,28 +177,22 @@ class JunkScanner(private val context: Context) {
                 return totalSize
             }
 
-            Log.d(TAG, "扫描目录: ${directory.absolutePath}, 文件数: ${files.size}")
 
             for (file in files) {
                 try {
-                    // 更新进度
                     withContext(Dispatchers.Main) {
                         callback.onScanProgress(file.absolutePath, totalSize)
                     }
 
                     if (file.isDirectory) {
-                        // 检查是否匹配垃圾目录规则
                         if (isJunkDirectory(file)) {
                             totalSize = scanJunkDirectory(file, callback, totalSize)
                         } else if (file.canRead() && !isSystemDirectory(file)) {
-                            // 递归扫描非系统目录
                             totalSize = scanDirectory(file, callback, totalSize)
                         }
                     } else if (file.isFile) {
-                        // 检查文件是否是垃圾文件
                         val category = categorizeFile(file)
                         if (category != null && categoryFileCounts.containsKey(category)) {
-                            // 检查分类是否已达到最大文件数限制
                             val currentCount = categoryFileCounts[category] ?: 0
                             if (currentCount < JunkCategory.MAX_FILES_PER_CATEGORY) {
                                 val junkFile = JunkFile(
@@ -229,34 +202,26 @@ class JunkScanner(private val context: Context) {
                                     file = file
                                 )
 
-                                // 实时回调通知找到文件
                                 withContext(Dispatchers.Main) {
                                     callback.onFileFound(junkFile, category)
                                 }
 
-                                // 更新计数器
                                 categoryFileCounts[category] = currentCount + 1
                                 totalSize += file.length()
 
-                                Log.d(TAG, "发现垃圾文件: ${file.name} (${junkFile.getSizeInMB()}) -> $category")
-                            } else {
-                                Log.d(TAG, "分类 $category 已达到最大文件数限制，跳过文件: ${file.name}")
                             }
                         }
                     }
 
-                    // 添加延迟让UI有时间更新
-                    if (totalSize % (10 * 1024 * 1024) == 0L) { // 每扫描10MB延迟一次
+                    if (totalSize % (10 * 1024 * 1024) == 0L) {
                         delay(20)
                     }
 
                 } catch (e: Exception) {
-                    Log.w(TAG, "处理文件时出错: ${file.absolutePath}", e)
                     continue
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "扫描目录时出错: ${directory.absolutePath}", e)
         }
 
         return totalSize
@@ -268,7 +233,6 @@ class JunkScanner(private val context: Context) {
         // 使用正则表达式规则检查
         for (pattern in compiledPatterns) {
             if (pattern.matcher(path).matches()) {
-                Log.d(TAG, "目录匹配垃圾规则: $path")
                 return true
             }
         }
@@ -297,7 +261,6 @@ class JunkScanner(private val context: Context) {
                     if (file.isFile && file.length() > 0) {
                         val category = categorizeFile(file) ?: "App Cache"
 
-                        // 检查分类是否已达到最大文件数限制
                         val currentCount = categoryFileCounts[category] ?: 0
                         if (currentCount < JunkCategory.MAX_FILES_PER_CATEGORY) {
                             val junkFile = JunkFile(
@@ -307,7 +270,6 @@ class JunkScanner(private val context: Context) {
                                 file = file
                             )
 
-                            // 实时回调通知找到文件
                             withContext(Dispatchers.Main) {
                                 callback.onFileFound(junkFile, category)
                             }
@@ -315,7 +277,6 @@ class JunkScanner(private val context: Context) {
                             // 更新计数器
                             categoryFileCounts[category] = currentCount + 1
                             totalSize += file.length()
-                            Log.d(TAG, "垃圾目录中的文件: ${file.name} -> $category")
                         }
                     } else if (file.isDirectory) {
                         totalSize = scanJunkDirectory(file, callback, totalSize)
@@ -325,7 +286,6 @@ class JunkScanner(private val context: Context) {
                 }
             }
         } catch (e: Exception) {
-            Log.w(TAG, "扫描垃圾目录时出错: ${junkDir.absolutePath}", e)
         }
 
         return totalSize
@@ -345,7 +305,6 @@ class JunkScanner(private val context: Context) {
         val extension = file.extension.lowercase()
         val filePath = file.absolutePath.lowercase()
 
-        // 使用正则表达式规则进行分类
         for (pattern in compiledPatterns) {
             if (pattern.matcher(filePath).matches()) {
                 return when {
@@ -359,9 +318,7 @@ class JunkScanner(private val context: Context) {
         }
 
         return when {
-            // APK 文件
             extension == "apk" -> {
-                // 小APK文件或者在下载目录的APK可能是垃圾
                 if (file.length() < APK_SIZE_THRESHOLD ||
                     filePath.contains("download") ||
                     filePath.contains("temp")) {
@@ -371,48 +328,39 @@ class JunkScanner(private val context: Context) {
                 }
             }
 
-            // 日志文件
             extension == "log" ||
                     fileName.contains("log") ||
                     fileName.endsWith(".out") ||
                     fileName.endsWith(".err") ||
                     extension in setOf("crash", "trace") -> "Log Files"
 
-            // 临时文件
             junkExtensions.contains(".$extension") ||
                     fileName.startsWith("tmp") ||
                     fileName.startsWith("temp") ||
                     fileName.contains("backup") ||
                     fileName.contains("~") -> "Temp Files"
 
-            // 缓存文件
             filePath.contains("/cache/") ||
                     filePath.contains("/.cache/") ||
                     fileName.contains("cache") -> "App Cache"
 
-            // 缩略图文件
             filePath.contains("thumbnail") ||
                     filePath.contains(".thumbnails") -> "App Cache"
 
-            // 空文件
             file.length() == 0L -> "Other"
 
-            // 重复下载文件
             fileName.contains("(1)") ||
                     fileName.contains("copy") ||
                     fileName.contains("duplicate") -> "Other"
 
-            // 临时下载文件
             extension in setOf("part", "crdownload", "download", "partial") -> "Temp Files"
 
-            // 其他可疑文件
             fileName.startsWith(".") && file.length() < 1024 * 1024 -> "Other" // 小于1MB的隐藏文件
 
             else -> null
         }
     }
 
-    // 创建测试垃圾文件，并实时通知
     private suspend fun createTestJunkFiles(callback: ScanCallback) {
         try {
             val testDir = File(context.externalCacheDir, "test_junk")
@@ -420,7 +368,6 @@ class JunkScanner(private val context: Context) {
                 testDir.mkdirs()
             }
 
-            // 创建各种类型的测试垃圾文件
             val testFiles = listOf(
                 "cache_file.cache" to ("App Cache" to "App Cache test content"),
                 "temp_file.tmp" to ("Temp Files" to "Temporary file content for testing"),
@@ -438,7 +385,6 @@ class JunkScanner(private val context: Context) {
                 val (category, content) = categoryAndContent
                 val file = File(testDir, filename)
 
-                // 检查分类是否已达到最大文件数限制
                 val currentCount = categoryFileCounts[category] ?: 0
                 if (currentCount < JunkCategory.MAX_FILES_PER_CATEGORY) {
                     if (!file.exists()) {
@@ -447,10 +393,8 @@ class JunkScanner(private val context: Context) {
                         } else {
                             file.writeText(content)
                         }
-                        Log.d(TAG, "创建测试文件: ${file.absolutePath}")
                     }
 
-                    // 实时通知测试文件
                     val junkFile = JunkFile(
                         name = file.name,
                         path = file.absolutePath,
@@ -462,16 +406,13 @@ class JunkScanner(private val context: Context) {
                         callback.onFileFound(junkFile, category)
                     }
 
-                    // 更新计数器
                     categoryFileCounts[category] = currentCount + 1
 
-                    delay(100) // 让UI有时间更新
+                    delay(100)
                 }
             }
 
-            Log.d(TAG, "测试垃圾文件创建完成")
         } catch (e: Exception) {
-            Log.e(TAG, "创建测试文件时出错", e)
         }
     }
 }

@@ -87,12 +87,10 @@ class FileActivity : AppCompatActivity() {
 
     private fun setupUI() {
         binding.layoutTip.imgLogo.setImageResource(R.mipmap.ic_file)
-        // 返回按钮
         binding.textBack.setOnClickListener {
             finish()
         }
 
-        // 设置RecyclerView
         fileAdapter = FileAdapter { position ->
             filteredFiles[position].isSelected = !filteredFiles[position].isSelected
             fileAdapter.notifyItemChanged(position)
@@ -103,25 +101,21 @@ class FileActivity : AppCompatActivity() {
             adapter = fileAdapter
         }
 
-        // 筛选按钮点击事件
         binding.tvType.setOnClickListener { showTypePopup() }
         binding.tvSize.setOnClickListener { showSizePopup() }
         binding.tvTime.setOnClickListener { showTimePopup() }
 
-        // 删除按钮
         binding.btnCleanNow.setOnClickListener { deleteSelectedFiles() }
         updateDeleteButtonState()
     }
 
     private fun showLoadingAndScanFiles() {
-        // 显示loading
         binding.layoutTip.load.visibility = View.VISIBLE
         startRotationAnimation()
 
         lifecycleScope.launch {
             delay(1000) // 显示1秒loading
 
-            // 后台扫描文件
             val files = withContext(Dispatchers.IO) {
                 scanAllFiles()
             }
@@ -130,7 +124,6 @@ class FileActivity : AppCompatActivity() {
             allFiles.addAll(files)
             applyFilters()
 
-            // 隐藏loading
             binding.layoutTip.load.visibility = View.GONE
             stopRotationAnimation()
         }
@@ -197,7 +190,6 @@ class FileActivity : AppCompatActivity() {
         val files = mutableListOf<FileItem>()
         val scannedPaths = mutableSetOf<String>()
 
-        // 扫描主要目录
         val directories = listOf(
             Environment.getExternalStorageDirectory(),
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
@@ -239,7 +231,6 @@ class FileActivity : AppCompatActivity() {
                 }
             }
         } catch (e: Exception) {
-            // 忽略权限错误
         }
     }
 
@@ -360,7 +351,6 @@ class FileActivity : AppCompatActivity() {
     private fun updateEmptyState() {
         val isEmpty = filteredFiles.isEmpty()
 
-        // 控制空数据状态的显示/隐藏
         binding.layoutEmptyState.visibility = if (isEmpty) View.VISIBLE else View.GONE
         binding.rvFiles.visibility = if (isEmpty) View.GONE else View.VISIBLE
     }
@@ -369,13 +359,10 @@ class FileActivity : AppCompatActivity() {
         val selectedCount = filteredFiles.count { it.isSelected }
         val isEmpty = filteredFiles.isEmpty()
 
-        // 更新按钮文本
         binding.btnCleanNow.text = if (selectedCount > 0) "Delete ($selectedCount)" else "Delete"
 
-        // 控制按钮状态：当列表为空或没有选中项时禁用
         binding.btnCleanNow.isEnabled = !isEmpty && selectedCount > 0
 
-        // 设置按钮的视觉状态
         if (isEmpty || selectedCount == 0) {
             binding.btnCleanNow.alpha = 0.5f
         } else {
@@ -387,7 +374,6 @@ class FileActivity : AppCompatActivity() {
         val selectedFiles = filteredFiles.filter { it.isSelected }
         if (selectedFiles.isEmpty()) return
 
-        // 显示loading
         binding.layoutTip.load.visibility = View.VISIBLE
         binding.layoutTip.tvLoadTip.text = "Cleaning..."
         startRotationAnimation()
@@ -402,7 +388,6 @@ class FileActivity : AppCompatActivity() {
                             fileItem.file.delete()
                         }
                     } catch (e: Exception) {
-                        // 忽略删除失败的文件
                     }
                 }
                 deletedSize
@@ -410,7 +395,6 @@ class FileActivity : AppCompatActivity() {
 
             delay(1000) // 显示1秒cleaning
 
-            // 跳转到FinishActivity
             val intent = Intent(this@FileActivity, FinishActivity::class.java)
             intent.putExtra("cleaned_size", totalSize)
             startActivity(intent)
@@ -466,7 +450,6 @@ class FileAdapter(private val onItemClick: (Int) -> Unit) : RecyclerView.Adapter
         }
         holder.imgFileLogo.setImageResource(iconRes)
 
-        // 设置选择状态图标
         holder.ivSelectStatus.setBackgroundResource(
             if (file.isSelected) R.mipmap.ic_selete else R.mipmap.ic_not_selete
         )

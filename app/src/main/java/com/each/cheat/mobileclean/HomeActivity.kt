@@ -24,7 +24,6 @@ class HomeActivity : AppCompatActivity() {
 
     private val binding by lazy { ActivityHomeBinding.inflate(layoutInflater) }
 
-    // 添加一个变量来记录哪个功能触发了权限请求
     private var permissionRequestSource: String? = null
 
     companion object {
@@ -49,13 +48,11 @@ class HomeActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
-        // 设置Boost按钮点击事件
         binding.tvBoost.setOnClickListener {
             permissionRequestSource = REQUEST_SOURCE_BOOST
             checkPermissionAndStartScan()
         }
 
-        // 设置权限弹窗按钮事件
         binding.inPermiss.tvYes.setOnClickListener {
             hidePermissionDialog()
             PermissionUtils.requestStoragePermission(this)
@@ -65,7 +62,6 @@ class HomeActivity : AppCompatActivity() {
             hidePermissionDialog()
         }
 
-        // 设置功能按钮点击事件 - 修改为照片管理功能
         binding.llImg.setOnClickListener {
             permissionRequestSource = REQUEST_SOURCE_PHOTO
             checkPermissionAndStartPhotoActivity()
@@ -112,21 +108,16 @@ class HomeActivity : AppCompatActivity() {
 
     private fun checkPermissionAndStartPhotoActivity() {
         if (PermissionUtils.hasStoragePermission(this)) {
-            // 有权限，直接跳转到照片页面
             startPhotoActivity()
         } else {
-            // 没有权限，显示权限申请弹窗
             showPermissionDialog()
         }
     }
 
-    // 添加检查权限并启动文件Activity的方法
     private fun checkPermissionAndStartFileActivity() {
         if (PermissionUtils.hasStoragePermission(this)) {
-            // 有权限，直接跳转到文件页面
             startFileActivity()
         } else {
-            // 没有权限，显示权限申请弹窗
             showPermissionDialog()
         }
     }
@@ -136,7 +127,6 @@ class HomeActivity : AppCompatActivity() {
         startActivity(intent)
     }
 
-    // 添加启动文件Activity的方法
     private fun startFileActivity() {
         val intent = Intent(this, FileActivity::class.java)
         startActivity(intent)
@@ -149,13 +139,11 @@ class HomeActivity : AppCompatActivity() {
                     StorageUtils.getStorageInfo(this@HomeActivity)
                 }
 
-                // 更新UI
                 binding.tvPro.text = storageInfo.usagePercentage.toString()
                 binding.tvStorageInfo.text = storageInfo.formattedInfo
 
             } catch (e: Exception) {
                 e.printStackTrace()
-                // 设置默认值
                 binding.tvPro.text = "35"
                 binding.tvStorageInfo.text = "36.5 GB Used / 128 GB Total"
             }
@@ -164,10 +152,8 @@ class HomeActivity : AppCompatActivity() {
 
     private fun checkPermissionAndStartScan() {
         if (PermissionUtils.hasStoragePermission(this)) {
-            // 有权限，直接跳转
             startCleanActivity()
         } else {
-            // 没有权限，显示权限申请弹窗
             showPermissionDialog()
         }
     }
@@ -195,13 +181,10 @@ class HomeActivity : AppCompatActivity() {
         when (requestCode) {
             PermissionUtils.REQUEST_STORAGE_PERMISSION -> {
                 if (PermissionUtils.onRequestPermissionsResult(requestCode, permissions, grantResults)) {
-                    // 权限授予成功 - 根据触发源跳转到相应页面
                     navigateToRequestedActivity()
                 } else {
-                    // 权限被拒绝
                     showPermissionDeniedDialog()
                 }
-                // 处理完后重置触发源
                 permissionRequestSource = null
             }
         }
@@ -213,13 +196,10 @@ class HomeActivity : AppCompatActivity() {
         when (requestCode) {
             PermissionUtils.REQUEST_MANAGE_STORAGE_PERMISSION -> {
                 if (PermissionUtils.hasStoragePermission(this)) {
-                    // 权限授予成功 - 根据触发源跳转到相应页面
                     navigateToRequestedActivity()
                 } else {
-                    // 权限被拒绝
                     showPermissionDeniedDialog()
                 }
-                // 处理完后重置触发源
                 permissionRequestSource = null
             }
         }
