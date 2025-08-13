@@ -43,7 +43,7 @@ class HomeActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-
+        this.supportActionBar?.hide()
         setupUI()
         loadStorageInfo()
     }
@@ -104,7 +104,8 @@ class HomeActivity : AppCompatActivity() {
 
         binding.tvPP.setOnClickListener {
             val intent = Intent(Intent.ACTION_VIEW)
-            intent.data = Uri.parse("https://sites.google.com/view/flashlight-launch/home")
+            //TODO
+            intent.data = Uri.parse("https://sites.google.com/view/sprightly--cleaner/%E9%A6%96%E9%A1%B5")
             startActivity(intent)
         }
     }

@@ -130,7 +130,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="22dp"
-                    android:text="Antivrirus"
+                    android:text="Photo Album"
                     android:textColor="#FF334F80"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -155,7 +155,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="22dp"
-                    android:text="Empty Folder"
+                    android:text="Large Files"
                     android:textColor="#FF893F2B"
                     android:textSize="15sp"
                     android:textStyle="bold" />
@@ -188,6 +188,7 @@
             android:layout_marginTop="57dp"
             android:textSize="18sp"
             android:gravity="center"
+            android:drawablePadding="8dp"
             android:text="@string/app_name" />
 
         <androidx.appcompat.widget.AppCompatTextView
